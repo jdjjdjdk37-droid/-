@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0F0F1E">
+    <title>📺 بث القنوات المباشر</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📺</text></svg>">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">
+                <span class="logo-icon">📺</span>
+                <h1>بث القنوات</h1>
+            </div>
+            <div class="header-actions">
+                <button id="themeBtn" class="icon-btn" title="تبديل الوضع">🌙</button>
+                <button id="favBtn" class="icon-btn" title="المفضلة">❤️</button>
+            </div>
+        </div>
+        <div class="search-container">
+            <input type="text" id="searchInput" placeholder="🔍 ابحث عن قناة..." autocomplete="off">
+            <button id="clearSearch" class="clear-btn" hidden>✕</button>
+        </div>
+    </header>
+
+    <!-- Filters -->
+    <div class="filters">
+        <button class="filter-btn active" data-filter="all">الكل</button>
+        <button class="filter-btn" data-filter="sports">⚽ رياضة</button>
+        <button class="filter-btn" data-filter="news">📰 أخبار</button>
+        <button class="filter-btn" data-filter="arabic">🇸🇦 عربية</button>
+        <button class="filter-btn" data-filter="iraq">🇮🇶 العراق</button>
+        <button class="filter-btn" data-filter="kids">👶 أطفال</button>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats" id="stats">
+        <span>⏳ جاري التحميل...</span>
+    </div>
+
+    <!-- Channels Grid -->
+    <main class="channels-grid" id="channelsGrid">
+        <div class="loading">
+            <div class="spinner"></div>
+            <p>جاري تحميل القنوات...</p>
+        </div>
+    </main>
+
+    <!-- Player Overlay -->
+    <div class="player-overlay" id="playerOverlay">
+        <div class="player-header">
+            <button class="close-btn" onclick="closePlayer()">✕</button>
+            <div class="player-title">
+                <span id="playerChannelName">القناة</span>
+                <span id="playerChannelGroup" class="player-group"></span>
+            </div>
+            <button class="icon-btn" id="favToggle" title="إضافة للمفضلة">🤍</button>
+        </div>
+        <div class="player-container">
+            <video id="video" controls autoplay playsinline></video>
+            <div id="playerError" class="player-error" hidden>
+                <div class="error-icon">⚠️</div>
+                <h3>فشل تشغيل القناة</h3>
+                <p id="errorMessage">قد تكون القناة غير متاحة حالياً</p>
+                <button onclick="retryPlay()" class="retry-btn">🔄 إعادة المحاولة</button>
+            </div>
+        </div>
+        <div class="player-footer">
+            <button class="footer-btn" onclick="copyUrl()">📋 نسخ الرابط</button>
+            <button class="footer-btn" onclick="shareChannel()">📤 مشاركة</button>
+            <button class="footer-btn" onclick="openExternal()">🔗 مشغل خارجي</button>
+        </div>
+    </div>
+
+    <!-- Favorites Sidebar -->
+    <div class="sidebar" id="favSidebar">
+        <div class="sidebar-header">
+            <h2>❤️ المفضلة</h2>
+            <button class="close-btn" onclick="closeFavorites()">✕</button>
+        </div>
+        <div class="sidebar-content" id="favoritesList">
+            <p class="empty-msg">لا توجد قنوات في المفضلة</p>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13"></script>
+    <script src="script.js"></script>
+</body>
+</html>
