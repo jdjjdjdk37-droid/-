@@ -2,12 +2,7 @@
 //  الإعدادات
 // ═══════════════════════════════════════════════════════════════
 
-// ⬇️⬇️⬇️ ضع رابط ملف القنوات هنا ⬇️⬇️⬇️
 const CHANNELS_URL = 'channels.txt';
-
-// ═══════════════════════════════════════════════════════════════
-//  المتغيرات العامة
-// ═══════════════════════════════════════════════════════════════
 
 let allChannels = [];
 let filteredChannels = [];
@@ -25,6 +20,7 @@ let displayedCount = 0;
 // ═══════════════════════════════════════════════════════════════
 
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('🚀 بدء التطبيق');
     loadFavorites();
     loadChannels();
     setupEventListeners();
@@ -41,7 +37,6 @@ function setupEventListeners() {
         btn.addEventListener('click', () => setFilter(btn.dataset.filter, btn));
     });
     
-    // Infinite scroll
     window.addEventListener('scroll', handleScroll);
 }
 
@@ -50,29 +45,44 @@ function setupEventListeners() {
 // ═══════════════════════════════════════════════════════════════
 
 async function loadChannels() {
+    console.log('📥 جلب القنوات من:', CHANNELS_URL);
+    
     try {
         const response = await fetch(CHANNELS_URL);
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        console.log('📡 Status:', response.status);
+        
+        if (!response.ok) throw new Error(`HTTP ${response.status} - ${response.statusText}`);
         
         const text = await response.text();
+        console.log('📄 حجم الملف:', text.length, 'حرف');
+        console.log('📝 أول 200 حرف:', text.substring(0, 200));
+        
         parseChannels(text);
     } catch (e) {
-        console.error('فشل تحميل القنوات:', e);
+        console.error('❌ فشل التحميل:', e);
         document.getElementById('channelsGrid').innerHTML = `
             <div class="loading">
                 <div class="error-icon">❌</div>
                 <h3>فشل تحميل القنوات</h3>
                 <p>${e.message}</p>
+                <p style="font-size: 12px; margin-top: 10px; color: #666;">
+                    الرابط: ${CHANNELS_URL}
+                </p>
                 <button onclick="location.reload()" class="retry-btn" style="margin-top:20px">🔄 إعادة المحاولة</button>
             </div>
         `;
-        document.getElementById('stats').innerHTML = '<span>❌ خطأ</span>';
+        document.getElementById('stats').innerHTML = '<span>❌ خطأ في التحميل</span>';
     }
 }
 
 function parseChannels(text) {
     allChannels = [];
     const lines = text.split('\n');
+    
+    console.log('🔍 عدد الأسطر:', lines.length);
+    
+    let skipped = 0;
+    let parsed = 0;
     
     for (const line of lines) {
         const trimmed = line.trim();
@@ -86,8 +96,10 @@ function parseChannels(text) {
                 const group = parts[1];
                 const url = parts[2];
                 
-                // تخطى قنوات الاختبار
-                if (!url.startsWith('http')) continue;
+                if (!url.startsWith('http')) {
+                    skipped++;
+                    continue;
+                }
                 
                 allChannels.push({
                     id: allChannels.length,
@@ -96,6 +108,9 @@ function parseChannels(text) {
                     url: url,
                     logo: ''
                 });
+                parsed++;
+            } else {
+                skipped++;
             }
         }
         // رابط فقط
@@ -107,7 +122,28 @@ function parseChannels(text) {
                 url: trimmed,
                 logo: ''
             });
+            parsed++;
+        } else {
+            skipped++;
         }
+    }
+    
+    console.log('✅ تم تحليل:', parsed, 'قناة');
+    console.log('⏭️ تم تجاهل:', skipped, 'سطر');
+    
+    if (allChannels.length === 0) {
+        document.getElementById('channelsGrid').innerHTML = `
+            <div class="loading">
+                <div class="error-icon">⚠️</div>
+                <h3>الملف فارغ أو بصيغة خاطئة</h3>
+                <p>تأكد أن الملف يحتوي على أسطر بصيغة:</p>
+                <code style="display:block; margin:15px 0; padding:10px; background:#1A1A2E; border-radius:8px; font-size:12px; text-align:left; direction:ltr;">
+                    1. اسم القناة | Sports | https://example.com/stream.m3u8
+                </code>
+                <button onclick="location.reload()" class="retry-btn" style="margin-top:20px">🔄 إعادة المحاولة</button>
+            </div>
+        `;
+        return;
     }
     
     filteredChannels = [...allChannels];
@@ -147,7 +183,6 @@ function renderChannels(reset = false) {
         fragment.appendChild(createChannelCard(ch, index));
     });
     
-    // إزالة loading إذا كان موجوداً
     const loading = grid.querySelector('.loading');
     if (loading) loading.remove();
     
@@ -171,7 +206,6 @@ function createChannelCard(channel, index) {
         <div class="channel-group">${escapeHtml(channel.group)}</div>
     `;
     
-    // فتح المشغل
     card.addEventListener('click', (e) => {
         if (e.target.classList.contains('channel-fav')) {
             e.stopPropagation();
@@ -197,12 +231,16 @@ function handleScroll() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  المشغل
+//  المشغل — نسخة محسّنة مع تشخيص
 // ═══════════════════════════════════════════════════════════════
 
 function playChannel(index) {
     const channel = filteredChannels[index];
     if (!channel) return;
+    
+    console.log('▶️ تشغيل:', channel.name);
+    console.log('🔗 الرابط:', channel.url);
+    console.log('🔒 HTTPS؟', channel.url.startsWith('https://'));
     
     currentPlayingIndex = index;
     
@@ -210,6 +248,11 @@ function playChannel(index) {
     document.getElementById('playerChannelGroup').textContent = channel.group;
     document.getElementById('playerOverlay').classList.add('active');
     document.getElementById('playerError').hidden = true;
+    
+    // تحذير HTTP
+    if (channel.url.startsWith('http://')) {
+        showToast('⚠️ القناة تعمل على HTTP — قد لا تعمل');
+    }
     
     updateFavToggle();
     playVideo(channel.url);
@@ -227,55 +270,73 @@ function playVideo(url) {
     video.removeAttribute('src');
     video.load();
     
+    // تحديث رسالة الخطأ
+    document.getElementById('errorMessage').textContent = 'جاري المحاولة...';
+    
     // جرّب HLS.js أولاً
     if (Hls.isSupported()) {
+        console.log('🎬 استخدام HLS.js');
+        
         hls = new Hls({
             enableWorker: true,
             lowLatencyMode: true,
             backBufferLength: 90,
             manifestLoadingTimeOut: 15000,
             manifestLoadingMaxRetry: 3,
+            xhrSetup: (xhr) => {
+                xhr.withCredentials = false;
+            },
         });
         
         hls.loadSource(url);
         hls.attachMedia(video);
         
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
+            console.log('✅ تم تحميل manifest');
             video.play().catch(e => {
                 console.warn('Autoplay فشل:', e);
+                showToast('اضغط ▶️ للتشغيل');
             });
         });
         
         hls.on(Hls.Events.ERROR, (event, data) => {
-            console.error('HLS Error:', data);
+            console.error('❌ HLS Error:', data);
+            console.error('   النوع:', data.type);
+            console.error('   التفاصيل:', data.details);
+            console.error('   Fatal:', data.fatal);
+            
             if (data.fatal) {
-                switch (data.type) {
-                    case Hls.ErrorTypes.NETWORK_ERROR:
-                        hls.startLoad();
-                        break;
-                    case Hls.ErrorTypes.MEDIA_ERROR:
-                        hls.recoverMediaError();
-                        break;
-                    default:
-                        showError('فشل تشغيل القناة');
-                        break;
+                let msg = 'فشل التشغيل';
+                
+                if (data.type === 'networkError') {
+                    msg = 'فشل الاتصال بالخادم';
+                    if (url.startsWith('http://') && location.protocol === 'https:') {
+                        msg = '⚠️ قناة HTTP محجوبة على HTTPS';
+                    }
+                } else if (data.type === 'mediaError') {
+                    msg = 'خطأ في الفيديو';
                 }
+                
+                showError(msg);
             }
         });
     }
     // iOS Safari
     else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        console.log('🎬 iOS Safari native HLS');
         video.src = url;
         video.addEventListener('loadedmetadata', () => {
             video.play().catch(e => console.warn(e));
         }, { once: true });
     }
     else {
-        showError('متصفحك لا يدعم هذا النوع من الفيديو');
+        console.error('❌ المتصفح لا يدعم HLS');
+        showError('متصفحك لا يدعم HLS — جرّب Chrome أو Safari');
     }
     
-    video.addEventListener('error', () => {
-        showError('فشل تحميل البث');
+    video.addEventListener('error', (e) => {
+        console.error('❌ Video error:', e);
+        showError('فشل تحميل الفيديو');
     }, { once: true });
 }
 
@@ -364,7 +425,6 @@ function setFilter(filter, btn) {
 
 function applyFilters() {
     filteredChannels = allChannels.filter(ch => {
-        // فلتر المجموعة
         if (currentFilter !== 'all') {
             const g = (ch.group || '').toLowerCase();
             const n = (ch.name || '').toLowerCase();
@@ -382,7 +442,6 @@ function applyFilters() {
             if (!match) return false;
         }
         
-        // فلتر البحث
         if (currentSearch) {
             const searchIn = `${ch.name} ${ch.group}`.toLowerCase();
             if (!searchIn.includes(currentSearch)) return false;
@@ -437,7 +496,6 @@ function toggleFavorite(channel) {
     saveFavorites();
     updateFavToggle();
     
-    // تحديث البطاقات
     document.querySelectorAll('.channel-card').forEach(card => {
         const favBtn = card.querySelector('.channel-fav');
         if (!favBtn) return;
@@ -495,17 +553,14 @@ function renderFavorites() {
         item.addEventListener('click', (e) => {
             if (e.target.classList.contains('fav-remove')) return;
             const i = parseInt(item.dataset.index);
-            const fav = favorites[i];
-            playExternalChannel(fav);
+            playExternalChannel(favorites[i]);
         });
     });
     
     list.querySelectorAll('.fav-remove').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
-            const i = parseInt(btn.dataset.index);
-            const fav = favorites[i];
-            toggleFavorite(fav);
+            toggleFavorite(favorites[parseInt(btn.dataset.index)]);
         });
     });
 }
@@ -522,7 +577,7 @@ function playExternalChannel(channel) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  أدوات مساعدة
+//  أدوات
 // ═══════════════════════════════════════════════════════════════
 
 function escapeHtml(s) {
@@ -547,7 +602,6 @@ function toggleTheme() {
     localStorage.setItem('theme', isLight ? 'light' : 'dark');
 }
 
-// استرجاع الوضع
 if (localStorage.getItem('theme') === 'light') {
     document.body.classList.add('light');
 }
